@@ -79,38 +79,42 @@ private:
   }
   void calculationMatrixMultiplication(){
     long i, j, k;
-    double tA, tA2;
 
     #pragma omp parallel
     {
-      #pragma omp for private(i, j, k, tA, tA2)
+      #pragma omp for private(i, j, k)
       for(i = 0; i < matrixSize; i++){
-        for(j = 0; j < matrixSize; j+=2){
-          tA = A[i * matrixSize + j];
-          tA2 = A[i * matrixSize + (j+1)];
-          for(k = 0; k < matrixSize; k+=10){
-
-            C[i * matrixSize + k] = C[i * matrixSize + k] + tA * B[matrixSize * j + k];
-            C[i * matrixSize + (k+1)] = C[i * matrixSize + (k+1)] + tA * B[matrixSize * j + (k+1)];
-            C[i * matrixSize + (k+2)] = C[i * matrixSize + (k+2)] + tA * B[matrixSize * j + (k+2)];
-            C[i * matrixSize + (k+3)] = C[i * matrixSize + (k+3)] + tA * B[matrixSize * j + (k+3)];
-            C[i * matrixSize + (k+4)] = C[i * matrixSize + (k+4)] + tA * B[matrixSize * j + (k+4)];
-            C[i * matrixSize + (k+5)] = C[i * matrixSize + (k+5)] + tA * B[matrixSize * j + (k+5)];
-            C[i * matrixSize + (k+6)] = C[i * matrixSize + (k+6)] + tA * B[matrixSize * j + (k+6)];
-            C[i * matrixSize + (k+7)] = C[i * matrixSize + (k+7)] + tA * B[matrixSize * j + (k+7)];
-            C[i * matrixSize + (k+8)] = C[i * matrixSize + (k+8)] + tA * B[matrixSize * j + (k+8)];
-            C[i * matrixSize + (k+9)] = C[i * matrixSize + (k+9)] + tA * B[matrixSize * j + (k+9)];
+        for(j = 0; j < matrixSize; j+=5){
+          for(k = 0; k < matrixSize; k+=5){
+            C[i * matrixSize + k] = C[i * matrixSize + k] + A[i * matrixSize + j] * B[matrixSize * j + k];
+            C[i * matrixSize + (k+1)] = C[i * matrixSize + (k+1)] + A[i * matrixSize + j] * B[matrixSize * j + (k+1)];
+            C[i * matrixSize + (k+2)] = C[i * matrixSize + (k+2)] + A[i * matrixSize + j] * B[matrixSize * j + (k+2)];
+            C[i * matrixSize + (k+3)] = C[i * matrixSize + (k+3)] + A[i * matrixSize + j] * B[matrixSize * j + (k+3)];
+            C[i * matrixSize + (k+4)] = C[i * matrixSize + (k+4)] + A[i * matrixSize + j] * B[matrixSize * j + (k+4)];
             
-            C[i * matrixSize + k] = C[i * matrixSize + k] + tA2 * B[matrixSize * (j+1) + k];
-            C[i * matrixSize + (k+1)] = C[i * matrixSize + (k+1)] + tA2 * B[matrixSize * (j+1) + (k+1)];
-            C[i * matrixSize + (k+2)] = C[i * matrixSize + (k+2)] + tA2 * B[matrixSize * (j+1) + (k+2)];
-            C[i * matrixSize + (k+3)] = C[i * matrixSize + (k+3)] + tA2 * B[matrixSize * (j+1) + (k+3)];
-            C[i * matrixSize + (k+4)] = C[i * matrixSize + (k+4)] + tA2 * B[matrixSize * (j+1) + (k+4)];
-            C[i * matrixSize + (k+5)] = C[i * matrixSize + (k+5)] + tA2 * B[matrixSize * (j+1) + (k+5)];
-            C[i * matrixSize + (k+6)] = C[i * matrixSize + (k+6)] + tA2 * B[matrixSize * (j+1) + (k+6)];
-            C[i * matrixSize + (k+7)] = C[i * matrixSize + (k+7)] + tA2 * B[matrixSize * (j+1) + (k+7)];
-            C[i * matrixSize + (k+8)] = C[i * matrixSize + (k+8)] + tA2 * B[matrixSize * (j+1) + (k+8)];
-            C[i * matrixSize + (k+9)] = C[i * matrixSize + (k+9)] + tA2 * B[matrixSize * (j+1) + (k+9)];
+            C[i * matrixSize + k] = C[i * matrixSize + k] + A[i * matrixSize + (j+1)] * B[matrixSize * (j+1) + k];
+            C[i * matrixSize + (k+1)] = C[i * matrixSize + (k+1)] + A[i * matrixSize + (j+1)] * B[matrixSize * (j+1) + (k+1)];
+            C[i * matrixSize + (k+2)] = C[i * matrixSize + (k+2)] + A[i * matrixSize + (j+1)] * B[matrixSize * (j+1) + (k+2)];
+            C[i * matrixSize + (k+3)] = C[i * matrixSize + (k+3)] + A[i * matrixSize + (j+1)] * B[matrixSize * (j+1) + (k+3)];
+            C[i * matrixSize + (k+4)] = C[i * matrixSize + (k+4)] + A[i * matrixSize + (j+1)] * B[matrixSize * (j+1) + (k+4)];
+            
+            C[i * matrixSize + k] = C[i * matrixSize + k] + A[i * matrixSize + (j+2)] * B[matrixSize * (j+2) + k];
+            C[i * matrixSize + (k+1)] = C[i * matrixSize + (k+1)] + A[i * matrixSize + (j+2)] * B[matrixSize * (j+2) + (k+1)];
+            C[i * matrixSize + (k+2)] = C[i * matrixSize + (k+2)] + A[i * matrixSize + (j+2)] * B[matrixSize * (j+2) + (k+2)];
+            C[i * matrixSize + (k+3)] = C[i * matrixSize + (k+3)] + A[i * matrixSize + (j+2)] * B[matrixSize * (j+2) + (k+3)];
+            C[i * matrixSize + (k+4)] = C[i * matrixSize + (k+4)] + A[i * matrixSize + (j+2)] * B[matrixSize * (j+2) + (k+4)];
+            
+            C[i * matrixSize + k] = C[i * matrixSize + k] + A[i * matrixSize + (j+3)] * B[matrixSize * (j+3) + k];
+            C[i * matrixSize + (k+1)] = C[i * matrixSize + (k+1)] + A[i * matrixSize + (j+3)] * B[matrixSize * (j+3) + (k+1)];
+            C[i * matrixSize + (k+2)] = C[i * matrixSize + (k+2)] + A[i * matrixSize + (j+3)] * B[matrixSize * (j+3) + (k+2)];
+            C[i * matrixSize + (k+3)] = C[i * matrixSize + (k+3)] + A[i * matrixSize + (j+3)] * B[matrixSize * (j+3) + (k+3)];
+            C[i * matrixSize + (k+4)] = C[i * matrixSize + (k+4)] + A[i * matrixSize + (j+3)] * B[matrixSize * (j+3) + (k+4)];
+            
+            C[i * matrixSize + k] = C[i * matrixSize + k] + A[i * matrixSize + (j+4)] * B[matrixSize * (j+4) + k];
+            C[i * matrixSize + (k+1)] = C[i * matrixSize + (k+1)] + A[i * matrixSize + (j+4)] * B[matrixSize * (j+4) + (k+1)];
+            C[i * matrixSize + (k+2)] = C[i * matrixSize + (k+2)] + A[i * matrixSize + (j+4)] * B[matrixSize * (j+4) + (k+2)];
+            C[i * matrixSize + (k+3)] = C[i * matrixSize + (k+3)] + A[i * matrixSize + (j+4)] * B[matrixSize * (j+4) + (k+3)];
+            C[i * matrixSize + (k+4)] = C[i * matrixSize + (k+4)] + A[i * matrixSize + (j+4)] * B[matrixSize * (j+4) + (k+4)];
           }
         }
       }
@@ -126,6 +130,21 @@ private:
         for(j = 0; j < matrixSize; j++){
           for(k = 0; k < matrixSize; k++){
             tmpC[i * matrixSize + k] = tmpC[i * matrixSize + k] + A[i * matrixSize + j] * B[matrixSize * j + k];
+          }
+        }
+      }
+    }
+  }
+  void calculationMatrixMultiplication2(){
+    long i, j, k;
+
+    #pragma omp parallel
+    {
+      #pragma omp for private(i, j, k)
+      for(i = 0; i < matrixSize; i++){
+        for(j = 0; j < matrixSize; j++){
+          for(k = 0; k < matrixSize; k++){
+            C[i * matrixSize + k] = C[i * matrixSize + k] + A[i * matrixSize + j] * B[matrixSize * j + k];
           }
         }
       }
@@ -164,7 +183,7 @@ public:
     double startTime, endTime, resultTime = 0.0;
     int i;
 
-    calculationMatrixMultiplication();
+    calculationMatrixMultiplication2();
     
     for(i = 0; i < 5; i++){
       setMatrixDataC();
