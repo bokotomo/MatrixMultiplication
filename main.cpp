@@ -2,13 +2,14 @@
 #include <iomanip>
 #include <ctime>
 #include <cstdlib>
+#include <immintrin.h>
 #include <omp.h>
 #include "matrix_multiplication.h"
 
 using namespace std;
 
 int main(int argc, char *argv[]){
-  long size = 1200;
+  long size = 1024;
   int threadsNum;
   double executionTime, GFlops;
   
