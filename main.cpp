@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <ctime>
 #include <cstdlib>
+#include <cmath> 
 #include <immintrin.h>
 #include <omp.h>
 #include "matrix_multiplication.h"
@@ -9,7 +10,7 @@
 using namespace std;
 
 int main(int argc, char *argv[]){
-  long size = 1024;
+  int size = 1024*1;
   int threadsNum;
   double executionTime, GFlops;
   
