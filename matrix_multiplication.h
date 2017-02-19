@@ -85,11 +85,10 @@ private:
 
   void calculationMatrixMultiplication(){
     int i, j, k;
-    double tA;
 
     #pragma omp parallel
     {
-      #pragma omp for private(i, j, k, tA)
+      #pragma omp for private(i, j, k)
       for(i = 0; i < matrixSize; i++){
       for(j = 0; j < matrixSize; j++){
       for(k = 0; k < matrixSize; k++){
@@ -114,18 +113,25 @@ private:
 
   void calculationMatrixMultiplicationSIMD(){
     int i, j, k;
-  	__m256d rA1, rB1, rA2, rB2, rA3, rB3, rA4, rB4, rA5, rB5, rA6, rB6, rA7, rB7, rA8, rB8, rA21, rA22, rA23, rA24, rA25, rA26, rA27, rA28, rA31, rA32, rA33, rA34, rA35, rA36, rA37, rA38, rA41, rA42, rA43, rA44, rA45, rA46, rA47, rA48, rSUM1, rSUM2, rSUM3, rSUM4;
-  	double d[4] = {0};
-     
+    double d[4] = {0};
+
+    #pragma vector aligned
     #pragma omp parallel
     {
-      #pragma omp for private(i, j, k, rA1, rB1, rA2, rB2, rA3, rB3, rA4, rB4, rA5, rB5, rA6, rB6, rA7, rB7, rA8, rB8, rA21, rA22, rA23, rA24, rA25, rA26, rA27, rA28, rA31, rA32, rA33, rA34, rA35, rA36, rA37, rA38, rA41, rA42, rA43, rA44, rA45, rA46, rA47, rA48, rSUM1, rSUM2, rSUM3, rSUM4, d)
-      for(i = 0; i < matrixSize; i++){
+      #pragma omp for private(i, j, k, d)
+      for(i = 0; i < matrixSize; i+=2){
+        __m256d rA1, rB1, rA2, rB2, rA3, rB3, rA4, rB4, rA5, rB5, rA6, rB6, rA7, rB7, rA8, rB8, rA21, rA22, rA23, rA24, rA25, rA26, rA27, rA28, rA31, rA32, rA33, rA34, rA35, rA36, rA37, rA38, rA41, rA42, rA43, rA44, rA45, rA46, rA47, rA48, rB21, rB22, rB23, rB24, rB25, rB26, rB27, rB28;
+        __m256d rSUM1, rSUM2, rSUM3, rSUM4, rSUM21, rSUM22, rSUM23, rSUM24;
+
         for(k = 0; k < matrixSize; k+=4){
           rSUM1 = _mm256_setzero_pd();
           rSUM2 = _mm256_setzero_pd();
           rSUM3 = _mm256_setzero_pd();
           rSUM4 = _mm256_setzero_pd();
+          rSUM21 = _mm256_setzero_pd();
+          rSUM22 = _mm256_setzero_pd();
+          rSUM23 = _mm256_setzero_pd();
+          rSUM24 = _mm256_setzero_pd();
 
           for(j = 0; j < matrixSize; j+=32){
             rA1 = _mm256_load_pd(&A[k * matrixSize + j]);
@@ -145,6 +151,15 @@ private:
             rB6 = _mm256_load_pd(&B[i * matrixSize + j + 20]);
             rB7 = _mm256_load_pd(&B[i * matrixSize + j + 24]);
             rB8 = _mm256_load_pd(&B[i * matrixSize + j + 28]);
+            
+            rB21 = _mm256_load_pd(&B[(i + 1) * matrixSize + j]);
+            rB22 = _mm256_load_pd(&B[(i + 1) * matrixSize + j + 4]);
+            rB23 = _mm256_load_pd(&B[(i + 1) * matrixSize + j + 8]);
+            rB24 = _mm256_load_pd(&B[(i + 1) * matrixSize + j + 12]);
+            rB25 = _mm256_load_pd(&B[(i + 1) * matrixSize + j + 16]);
+            rB26 = _mm256_load_pd(&B[(i + 1) * matrixSize + j + 20]);
+            rB27 = _mm256_load_pd(&B[(i + 1) * matrixSize + j + 24]);
+            rB28 = _mm256_load_pd(&B[(i + 1) * matrixSize + j + 28]);
             
             rA21 = _mm256_load_pd(&A[(k+1) * matrixSize + j]);
             rA22 = _mm256_load_pd(&A[(k+1) * matrixSize + j + 4]);
@@ -205,6 +220,39 @@ private:
             rSUM2 = _mm256_fmadd_pd(rA28, rB8, rSUM2);
             rSUM3 = _mm256_fmadd_pd(rA38, rB8, rSUM3);
             rSUM4 = _mm256_fmadd_pd(rA48, rB8, rSUM4);
+            
+            rSUM21 = _mm256_fmadd_pd(rA1, rB21, rSUM21);
+            rSUM22 = _mm256_fmadd_pd(rA21, rB21, rSUM22);
+            rSUM23 = _mm256_fmadd_pd(rA31, rB21, rSUM23);
+            rSUM24 = _mm256_fmadd_pd(rA41, rB21, rSUM24);
+            rSUM21 = _mm256_fmadd_pd(rA2, rB22, rSUM21);
+            rSUM22 = _mm256_fmadd_pd(rA22, rB22, rSUM22);
+            rSUM23 = _mm256_fmadd_pd(rA32, rB22, rSUM23);
+            rSUM24 = _mm256_fmadd_pd(rA42, rB22, rSUM24);
+            rSUM21 = _mm256_fmadd_pd(rA3, rB23, rSUM21);
+            rSUM22 = _mm256_fmadd_pd(rA23, rB23, rSUM22);
+            rSUM23 = _mm256_fmadd_pd(rA33, rB23, rSUM23);
+            rSUM24 = _mm256_fmadd_pd(rA43, rB23, rSUM24);
+            rSUM21 = _mm256_fmadd_pd(rA4, rB24, rSUM21);
+            rSUM22 = _mm256_fmadd_pd(rA24, rB24, rSUM22);
+            rSUM23 = _mm256_fmadd_pd(rA34, rB24, rSUM23);
+            rSUM24 = _mm256_fmadd_pd(rA44, rB24, rSUM24);
+            rSUM21 = _mm256_fmadd_pd(rA5, rB25, rSUM21);
+            rSUM22 = _mm256_fmadd_pd(rA25, rB25, rSUM22);
+            rSUM23 = _mm256_fmadd_pd(rA35, rB25, rSUM23);
+            rSUM24 = _mm256_fmadd_pd(rA45, rB25, rSUM24);
+            rSUM21 = _mm256_fmadd_pd(rA6, rB26, rSUM21);
+            rSUM22 = _mm256_fmadd_pd(rA26, rB26, rSUM22);
+            rSUM23 = _mm256_fmadd_pd(rA36, rB26, rSUM23);
+            rSUM24 = _mm256_fmadd_pd(rA46, rB26, rSUM24);
+            rSUM21 = _mm256_fmadd_pd(rA7, rB27, rSUM21);
+            rSUM22 = _mm256_fmadd_pd(rA27, rB27, rSUM22);
+            rSUM23 = _mm256_fmadd_pd(rA37, rB27, rSUM23);
+            rSUM24 = _mm256_fmadd_pd(rA47, rB27, rSUM24);
+            rSUM21 = _mm256_fmadd_pd(rA8, rB28, rSUM21);
+            rSUM22 = _mm256_fmadd_pd(rA28, rB28, rSUM22);
+            rSUM23 = _mm256_fmadd_pd(rA38, rB28, rSUM23);
+            rSUM24 = _mm256_fmadd_pd(rA48, rB28, rSUM24);
 
           }
 
@@ -214,6 +262,13 @@ private:
           _mm256_store_pd(d, _mm256_hadd_pd(rSUM3, rSUM4));
           C[(k+2) * matrixSize + i] = d[0] + d[2];
           C[(k+3) * matrixSize + i] = d[1] + d[3];
+          
+          _mm256_store_pd(d, _mm256_hadd_pd(rSUM21, rSUM22));
+          C[k * matrixSize + (i + 1)] = d[0] + d[2];
+          C[(k+1) * matrixSize + (i + 1)] = d[1] + d[3];
+          _mm256_store_pd(d, _mm256_hadd_pd(rSUM23, rSUM24));
+          C[(k+2) * matrixSize + (i + 1)] = d[0] + d[2];
+          C[(k+3) * matrixSize + (i + 1)] = d[1] + d[3];
         }
       }
     }
@@ -261,6 +316,7 @@ private:
       }
     }
   }
+
 public:
   MatrixMultiplication(int size, int threadsNum){
     cout << "Matrix Multiplication" << endl;
