@@ -6,7 +6,7 @@ private:
   double *A, *B, *C, *tmpC;
   int matrixSize;
 
-  void setMatrixData(){
+  void setMatrixRandomData(){
     int i;
 
     srand( time(NULL) );
@@ -14,21 +14,27 @@ private:
     #pragma omp parallel
     {
       #pragma omp for
-      for(i = 0 ; i < matrixSize * matrixSize ; i++){
+      for(i = 0 ; i < matrixSize * matrixSize ; i += 4){
         A[i] = rand () % 5 + 0.1;
+        A[i + 1] = rand () % 5 + 0.1;
+        A[i + 2] = rand () % 5 + 0.1;
+        A[i + 3] = rand () % 5 + 0.1;
         B[i] = rand () % 5 + 0.2;
+        B[i + 1] = rand () % 5 + 0.2;
+        B[i + 2] = rand () % 5 + 0.2;
+        B[i + 3] = rand () % 5 + 0.2;
       }
     }
   }
 
-  void setMatrixDataC(){
+  void setZeroToMatrixData(double *pointer){
     int i;
 
     #pragma omp parallel
     {
       #pragma omp for
       for(i = 0 ; i < matrixSize * matrixSize ; i++){
-        C[i] = 0;
+        pointer[i] = 0;
       }
     }
   }
@@ -47,39 +53,17 @@ private:
     return checkFlag;
   }
 
-  void showMatrixData(){
-    int i, j;
-    int N = matrixSize;
+  void calculationMatrixMultiplicationForConfirmation(){
+    int i, j, k;
 
-    for(i = 0 ; i < N ; i++){
-      for(j = 0 ; j < N ; j++){
-        cout << A[i * N + j] << " ";
-      }
-      cout << endl;
-    }
-
-    cout << endl;
-    for(i = 0 ; i < N ; i++){
-      for(j = 0 ; j < N ; j++){
-        cout << B[i * N + j] << " ";
-      }
-      cout << endl;
-    }
-
-    cout << endl;
-    for(i = 0 ; i < N ; i++){
-      for(j = 0 ; j < N ; j++){
-        cout << C[i * N + j] << " ";
-      }
-      cout << endl;
-    }
-
-    cout << endl;
-    for(i = 0 ; i < N ; i++){
-      for(j = 0 ; j < N ; j++){
-        cout << tmpC[i * N + j] << " ";
-      }
-      cout << endl;
+    #pragma omp parallel
+    {
+      #pragma omp for private(i, j, k)
+      for(i = 0; i < matrixSize; i++){
+      for(j = 0; j < matrixSize; j++){
+      for(k = 0; k < matrixSize; k++){
+        tmpC[i * matrixSize + k] = tmpC[i * matrixSize + k] + A[i * matrixSize + j] * B[matrixSize * j + k];
+      }}}
     }
   }
 
@@ -97,21 +81,7 @@ private:
     }
   }
 
-  void calculationMatrixMultiplicationSimple(){
-    int i, j, k;
-
-    #pragma omp parallel
-    {
-      #pragma omp for private(i, j, k)
-      for(i = 0; i < matrixSize; i++){
-      for(j = 0; j < matrixSize; j++){
-      for(k = 0; k < matrixSize; k++){
-        tmpC[i * matrixSize + k] = tmpC[i * matrixSize + k] + A[i * matrixSize + j] * B[matrixSize * j + k];
-      }}}
-    }
-  }
-
-  void calculationMatrixMultiplicationLargeMemorySIMD(){
+  void calculationMatrixMultiplicationForLargeMemorySIMD(){
     int i, j, k, ib, jb, kb;
     int block = 128;
     double d[4] = {0};
@@ -144,7 +114,7 @@ private:
     }
   }
 
-  void calculationMatrixMultiplicationLowMemorySIMD(){
+  void calculationMatrixMultiplicationForLowMemorySIMD(){
     int i, j, k;
     double d[4] = {0};
 
@@ -319,24 +289,24 @@ private:
   void transpositionMatrix(){
     int i, j;
     double *tmp;
-    
+
     tmp = (double *)_mm_malloc(sizeof(double) * matrixSize * matrixSize, 32);
     #pragma omp parallel
     {
       #pragma omp for private(i)
-      for(i = 0; i < matrixSize * matrixSize; i+=4){
+      for(i = 0; i < matrixSize * matrixSize; i += 4){
         tmp[i] = B[i];
         tmp[i + 1] = B[i + 1];
         tmp[i + 2] = B[i + 2];
         tmp[i + 3] = B[i + 3];
       }
     }
-    
+
     #pragma omp parallel
     {
       #pragma omp for private(i, j)
       for(i = 0; i < matrixSize; i++){
-        for(j = 0; j < matrixSize; j+=4){
+        for(j = 0; j < matrixSize; j += 4){
           B[i* matrixSize + j] = tmp[j * matrixSize + i];
           B[i* matrixSize + (j + 1)] = tmp[(j + 1) * matrixSize + i];
           B[i* matrixSize + (j + 2)] = tmp[(j + 2) * matrixSize + i];
@@ -371,9 +341,9 @@ public:
     C = (double *)_mm_malloc(sizeof(double) * size * size, 32);
     tmpC = (double *)_mm_malloc(sizeof(double) * size * size, 32);
 
-    setMatrixData();
+    setMatrixRandomData();
 
-    calculationMatrixMultiplicationSimple();
+    calculationMatrixMultiplicationForConfirmation();
 
     cout << "------ MatrixData Setting complete" << endl;
   }
@@ -383,29 +353,66 @@ public:
     int i;
 
     transpositionMatrix();
-    calculationMatrixMultiplicationLowMemorySIMD();
+    calculationMatrixMultiplicationForLowMemorySIMD();
 
     for(i = 0; i < 3; i++){
-      setMatrixDataC();
+      setZeroToMatrixData(&C[0]);
       startTime = omp_get_wtime();
-      calculationMatrixMultiplicationLowMemorySIMD();
+      calculationMatrixMultiplicationForLowMemorySIMD();
       endTime = omp_get_wtime();
       resultTime += (double)(endTime - startTime);
     }
     resultTime = resultTime / 3;
 
-    //showMatrixData();
-
-    _mm_free(A);
-    _mm_free(B);
-    _mm_free(C);
-    _mm_free(tmpC);
-
     if( checkMatrixData() == true ){
       cout << "MatrixData Error!!!" << endl;
+      memoryFree();
       exit(1);
     }
 
     return resultTime;
+  }
+
+  void memoryFree(){
+    _mm_free(A);
+    _mm_free(B);
+    _mm_free(C);
+    _mm_free(tmpC);
+  }
+
+  void showMatrixData(){
+    int i, j;
+    int N = matrixSize;
+
+    for(i = 0 ; i < N ; i++){
+      for(j = 0 ; j < N ; j++){
+        cout << A[i * N + j] << " ";
+      }
+      cout << endl;
+    }
+
+    cout << endl;
+    for(i = 0 ; i < N ; i++){
+      for(j = 0 ; j < N ; j++){
+        cout << B[i * N + j] << " ";
+      }
+      cout << endl;
+    }
+
+    cout << endl;
+    for(i = 0 ; i < N ; i++){
+      for(j = 0 ; j < N ; j++){
+        cout << C[i * N + j] << " ";
+      }
+      cout << endl;
+    }
+
+    cout << endl;
+    for(i = 0 ; i < N ; i++){
+      for(j = 0 ; j < N ; j++){
+        cout << tmpC[i * N + j] << " ";
+      }
+      cout << endl;
+    }
   }
 };
