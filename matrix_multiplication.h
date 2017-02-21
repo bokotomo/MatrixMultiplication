@@ -49,35 +49,35 @@ private:
 
   void showMatrixData(){
     int i, j;
-    int num = matrixSize;
+    int N = matrixSize;
 
-    for(i = 0 ; i < num  ; i++){
-      for(j = 0 ; j < num ; j++){
-        cout << A[i * num + j] << " ";
+    for(i = 0 ; i < N ; i++){
+      for(j = 0 ; j < N ; j++){
+        cout << A[i * N + j] << " ";
       }
       cout << endl;
     }
-    
+
     cout << endl;
-    for(i = 0 ; i < num  ; i++){
-      for(j = 0 ; j < num ; j++){
-        cout << B[i * num + j] << " ";
+    for(i = 0 ; i < N ; i++){
+      for(j = 0 ; j < N ; j++){
+        cout << B[i * N + j] << " ";
       }
       cout << endl;
     }
-    
+
     cout << endl;
-    for(i = 0 ; i < num  ; i++){
-      for(j = 0 ; j < num ; j++){
-        cout << C[i * num + j] << " ";
+    for(i = 0 ; i < N ; i++){
+      for(j = 0 ; j < N ; j++){
+        cout << C[i * N + j] << " ";
       }
       cout << endl;
     }
-    
+
     cout << endl;
-    for(i = 0 ; i < num  ; i++){
-      for(j = 0 ; j < num ; j++){
-        cout << tmpC[i * num + j] << " ";
+    for(i = 0 ; i < N ; i++){
+      for(j = 0 ; j < N ; j++){
+        cout << tmpC[i * N + j] << " ";
       }
       cout << endl;
     }
@@ -111,7 +111,40 @@ private:
     }
   }
 
-  void calculationMatrixMultiplicationSIMD(){
+  void calculationMatrixMultiplicationLargeMemorySIMD(){
+    int i, j, k, ib, jb, kb;
+    int block = 128;
+    double d[4] = {0};
+    __m256d rA1;
+    __m256d rB1;
+    __m256d rSUM1;
+
+    #pragma vector aligned
+    #pragma omp parallel
+    {
+      #pragma omp for private(i, j, k, ib, jb, kb, d, rA1, rB1, rSUM1)
+      for(ib = 0; ib < matrixSize; ib += block){
+      for(i = ib; i < ib + block ; i += 1){
+        for(kb = 0; kb < matrixSize; kb += block){
+        for(k = kb; k < kb + block; k += 1){
+          rSUM1 = _mm256_setzero_pd();
+          for(jb = 0; jb < matrixSize; jb += block){
+          for(j = jb; j < jb + block ; j += 4){
+            rA1 = _mm256_load_pd(&A[k * matrixSize + j]);
+            rB1 = _mm256_load_pd(&B[i * matrixSize + j]);
+            rSUM1 = _mm256_fmadd_pd(rA1, rB1, rSUM1);
+          }
+          }
+          _mm256_store_pd(d, rSUM1);
+          C[k * matrixSize + i] = d[0] + d[1] + d[2] + d[3];
+        }
+        }
+      }
+      }
+    }
+  }
+
+  void calculationMatrixMultiplicationLowMemorySIMD(){
     int i, j, k;
     double d[4] = {0};
 
@@ -316,7 +349,7 @@ private:
 
   void setThreadsNum(int threadsNum){
     omp_set_num_threads(threadsNum);
-  
+
     #pragma omp parallel num_threads(threadsNum)
     {
       #pragma omp single
@@ -337,7 +370,7 @@ public:
     B = (double *)_mm_malloc(sizeof(double) * size * size, 32);
     C = (double *)_mm_malloc(sizeof(double) * size * size, 32);
     tmpC = (double *)_mm_malloc(sizeof(double) * size * size, 32);
-    
+
     setMatrixData();
 
     calculationMatrixMultiplicationSimple();
@@ -350,12 +383,12 @@ public:
     int i;
 
     transpositionMatrix();
-    calculationMatrixMultiplicationSIMD();
-    
+    calculationMatrixMultiplicationLowMemorySIMD();
+
     for(i = 0; i < 3; i++){
       setMatrixDataC();
       startTime = omp_get_wtime();
-      calculationMatrixMultiplicationSIMD();
+      calculationMatrixMultiplicationLowMemorySIMD();
       endTime = omp_get_wtime();
       resultTime += (double)(endTime - startTime);
     }
@@ -363,15 +396,15 @@ public:
 
     //showMatrixData();
 
-    if( checkMatrixData() == true ){
-      cout << "MatrixData Error!!!" << endl;
-      exit(1);
-    }
-
     _mm_free(A);
     _mm_free(B);
     _mm_free(C);
     _mm_free(tmpC);
+
+    if( checkMatrixData() == true ){
+      cout << "MatrixData Error!!!" << endl;
+      exit(1);
+    }
 
     return resultTime;
   }
